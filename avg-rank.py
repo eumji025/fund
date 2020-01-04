@@ -2,187 +2,187 @@
 # -*- coding: utf-8 -*-
 import glob
 import sys
-	
-# ÊÇ·ñÒÑÔÚlistÖĞ
+
+
+# æ˜¯å¦å·²åœ¨listä¸­
 def get_index(fund_code, all_fund_list):
-	fund_num = len(all_fund_list)
-	fund_index = 0
-	while fund_index < fund_num:
-		if fund_code in all_fund_list[fund_index]:
-			break;
-		fund_index += 1
-	
-	return fund_index
+    fund_num = len(all_fund_list)
+    fund_index = 0
+    while fund_index < fund_num:
+        if fund_code in all_fund_list[fund_index]:
+            break;
+        fund_index += 1
+
+    return fund_index
+
 
 def main():
-		
-	# 1¡¢¶ÁÈ¡ËùÓĞµÄ½á¹ûÎÄ¼ş
-	result_files = glob.glob('result_*.txt')
-	if (len(result_files) == 0) :
-		print 'no result file to process!'
-		sys.exit(1)
-	
-	# ½«½á¹û¶¼·Åµ½Ò»¸ölistÖĞ ¼ÆËãÄÄ¸öfund Æ½¾ùÅÅÃû×î¸ß
-	# code name type rank1 rate1 rank2 rate2 ... rankn raten average_rank
-	
-	file_num = 0
-	all_fund_list = []
-	
-	# Ñ­»·´¦ÀíÎÄ¼ş
-	for filename in result_files:
-		print 'process file:\t' + str(file_num) + '\t' + filename
-		file_object = open(filename, 'r')
-		try:
-			# µÚ1ĞĞ ±íÍ·²»´¦Àí ´ÓµÚ2ĞĞ¿ªÊ¼´¦Àí
-			file_object.readline()
-			while 1:
-				funds_txt = file_object.readline()
-				if not funds_txt:
-					break;
-					
-				# ×ª³Élist
-				fund = funds_txt.split()
-				
-				# Èç¹ûÊÇµÚ1¸öÎÄ¼ş Ö±½Óappend
-				if 0 == file_num:
-					fund_list= []
-					fund_list.append(fund[1])
-					fund_list.append(fund[2])
-					fund_list.append(fund[3])
-					fund_list.append(fund[0])
-					fund_list.append(fund[7])
-					
-					all_fund_list.append(fund_list)
-				else:
-					# ²éÕÒÊÇ·ñÒÑÔÚlistÖĞ
-					fund_num = len(all_fund_list)
-					fund_index = get_index(fund[1], all_fund_list)
-					if fund_index < fund_num:
-						# listÖĞÒÑ´æÔÚ Ö»append rank ºÍ rate
-						#print fund_code + '\t' + str(fund_index) + '\t' + str(all_fund_list[fund_index])
-						all_fund_list[fund_index].append(fund[0])
-						all_fund_list[fund_index].append(fund[7])
-					else:
-						# Èç¹û²»´æÔÚ ²»½öĞèÒª½«Æä¼ÓÈëlistÖĞ Í¬ÑùĞèÒª½«ÆäËû¼¸¸ö rank ºÍ rate ²¹ÉÏ
-						# Èç¹û±¾fundcodeÔÚÇ°¼¸¸öÎÄ¼şÖĞ²»´æÔÚ ¾ÍÊÇµ¹ÊıµÚÒ» µÚ100Ãû°É rank Ä¬ÈÏ100 rate Ä¬ÈÏ0
-						#print fund_code + '\tnot found!'
-						fund_list= []
-						# code name type
-						fund_list.append(fund[1])
-						fund_list.append(fund[2])
-						fund_list.append(fund[3])
-						# ²¹ÉÏ Ç°¼¸¸öÎÄ¼şµÄ rank ºÍ rate
-						for i in range(file_num):
-							fund_list.append('100')
-							fund_list.append('0')
-						# ¼ÓÉÏµ±Ç°µÄrank ºÍ rate
-						fund_list.append(fund[0])
-						fund_list.append(fund[7])
-						
-						#½«Æä¼ÓÈëÁĞ±í
-						all_fund_list.append(fund_list)						
-						
-		finally:
-			file_object.close()
-		
-		# »¹ÓĞ ´ÓµÚ2¸öÎÄ¼ş¿ªÊ¼ Èç¹ûÓĞfund ²»ÔÚ±¾ÎÄ¼şÖĞ³öÏÖ ¾ÍÊÇµ¹ÊıµÚÒ» µÚ100Ãû°É »¹Òª½«rank ºÍ rate ²¹ÉÏ ²Á Í¦¸´ÔÓ
-		if file_num > 0:
-			# ×î³¤µÄlen Îª 5 + 2 * file_num
-			fund_len = 5 + 2 * file_num
-			fund_num = len(all_fund_list)
-			fund_index = 0
-			while fund_index < fund_num:
-				if len(all_fund_list[fund_index]) < fund_len:
-					all_fund_list[fund_index].append('100')
-					all_fund_list[fund_index].append('0')
-				
-				fund_index +=1
-		
-		# ´¦ÀíÏÂÒ»¸öÎÄ¼ş
-		file_num += 1
-	
-	'''
-	print 'filenum:' + str(file_num)
-	print len(all_fund_list)
+    # 1ã€è¯»å–æ‰€æœ‰çš„ç»“æœæ–‡ä»¶
+    result_files = glob.glob('result_*.txt')
+    if (len(result_files) == 0):
+        print('no result file to process!')
+        sys.exit(1)
+
+    # å°†ç»“æœéƒ½æ”¾åˆ°ä¸€ä¸ªlistä¸­ è®¡ç®—å“ªä¸ªfund å¹³å‡æ’åæœ€é«˜
+    # code name type rank1 rate1 rank2 rate2 ... rankn raten average_rank
+
+    file_num = 0
+    all_fund_list = []
+
+    # å¾ªç¯å¤„ç†æ–‡ä»¶
+    for filename in result_files:
+        print('process file:\t' + str(file_num) + '\t' + filename)
+        file_object = open(filename, 'r')
+        try:
+            # ç¬¬1è¡Œ è¡¨å¤´ä¸å¤„ç† ä»ç¬¬2è¡Œå¼€å§‹å¤„ç†
+            file_object.readline()
+            while 1:
+                funds_txt = file_object.readline()
+                if not funds_txt:
+                    break;
+
+                # è½¬æˆlist
+                fund = funds_txt.split()
+
+                # å¦‚æœæ˜¯ç¬¬1ä¸ªæ–‡ä»¶ ç›´æ¥append
+                if 0 == file_num:
+                    fund_list = []
+                    fund_list.append(fund[1])
+                    fund_list.append(fund[2])
+                    fund_list.append(fund[3])
+                    fund_list.append(fund[0])
+                    fund_list.append(fund[7])
+
+                    all_fund_list.append(fund_list)
+                else:
+                    # æŸ¥æ‰¾æ˜¯å¦å·²åœ¨listä¸­
+                    fund_num = len(all_fund_list)
+                    fund_index = get_index(fund[1], all_fund_list)
+                    if fund_index < fund_num:
+                        # listä¸­å·²å­˜åœ¨ åªappend rank å’Œ rate
+                        # print(fund_code + '\t' + str(fund_index) + '\t' + str(all_fund_list[fund_index]))
+                        all_fund_list[fund_index].append(fund[0])
+                        all_fund_list[fund_index].append(fund[7])
+                    else:
+                        # å¦‚æœä¸å­˜åœ¨ ä¸ä»…éœ€è¦å°†å…¶åŠ å…¥listä¸­ åŒæ ·éœ€è¦å°†å…¶ä»–å‡ ä¸ª rank å’Œ rate è¡¥ä¸Š
+                        # å¦‚æœæœ¬fundcodeåœ¨å‰å‡ ä¸ªæ–‡ä»¶ä¸­ä¸å­˜åœ¨ å°±æ˜¯å€’æ•°ç¬¬ä¸€ ç¬¬100åå§ rank é»˜è®¤100 rate é»˜è®¤0
+                        # print(fund_code + '\tnot found!')
+                        fund_list = []
+                        # code name type
+                        fund_list.append(fund[1])
+                        fund_list.append(fund[2])
+                        fund_list.append(fund[3])
+                        # è¡¥ä¸Š å‰å‡ ä¸ªæ–‡ä»¶çš„ rank å’Œ rate
+                        for i in range(file_num):
+                            fund_list.append('100')
+                            fund_list.append('0')
+                        # åŠ ä¸Šå½“å‰çš„rank å’Œ rate
+                        fund_list.append(fund[0])
+                        fund_list.append(fund[7])
+
+                        # å°†å…¶åŠ å…¥åˆ—è¡¨
+                        all_fund_list.append(fund_list)
+
+        finally:
+            file_object.close()
+
+        # è¿˜æœ‰ ä»ç¬¬2ä¸ªæ–‡ä»¶å¼€å§‹ å¦‚æœæœ‰fund ä¸åœ¨æœ¬æ–‡ä»¶ä¸­å‡ºç° å°±æ˜¯å€’æ•°ç¬¬ä¸€ ç¬¬100åå§ è¿˜è¦å°†rank å’Œ rate è¡¥ä¸Š æ“¦ æŒºå¤æ‚
+        if file_num > 0:
+            # æœ€é•¿çš„len ä¸º 5 + 2 * file_num
+            fund_len = 5 + 2 * file_num
+            fund_num = len(all_fund_list)
+            fund_index = 0
+            while fund_index < fund_num:
+                if len(all_fund_list[fund_index]) < fund_len:
+                    all_fund_list[fund_index].append('100')
+                    all_fund_list[fund_index].append('0')
+
+                fund_index += 1
+
+        # å¤„ç†ä¸‹ä¸€ä¸ªæ–‡ä»¶
+        file_num += 1
+
+    '''
+	print('filenum:' + str(file_num))
+	print(len(all_fund_list))
 	for fund_list in all_fund_list:
-		print fund_list
+		print(fund_list)
 	'''
-	
-	# 2¡¢¼ÆËãÆ½¾ùÅÅÃû
-	fund_num = len(all_fund_list)
-	fund_index = 0
-	while fund_index < fund_num:
-		sum_rank = 0
-		# ÓĞ¼¸¸öÎÄ¼ş ¾ÍÓĞ¼¸¸öÅÅÃû rankµÄindex 3 5 7 ... ...
-		for i in range(file_num):
-			sum_rank += int(all_fund_list[fund_index][3 + 2 * i])
-			
-		# ¼ÆËãÆ½¾ùÅÅÃû
-		avg_rank = float('%.2f' %(float(sum_rank) / file_num))
-	
-		# ¼ÓÈëavg_rank
-		all_fund_list[fund_index].append(avg_rank)
-		
-		# ´¦ÀíÏÂÒ»¸ö
-		fund_index +=1
-		
-	# 3¡¢ÅÅĞò Ğ´ÎÄ¼ş ´òÓ¡
-	# avg_rankµÄindex 5 + 2 * file_num
-	all_fund_list.sort(key=lambda fund: fund[3 + 2 * file_num])
-	
-	file_object = open('results.txt', 'w')
-	int_rank = 1
-	try:
-		for fund_list in all_fund_list:
-			print str(int_rank) + '\t' + '\t'.join('{0}'.format(n) for n in fund_list)
-			file_object.write(str(int_rank) + '\t' + '\t'.join('{0}'.format(n) for n in fund_list) + '\n')
-			int_rank += 1
-	finally:
-			file_object.close()
-	
-	
-	sys.exit(0)
+
+    # 2ã€è®¡ç®—å¹³å‡æ’å
+    fund_num = len(all_fund_list)
+    fund_index = 0
+    while fund_index < fund_num:
+        sum_rank = 0
+        # æœ‰å‡ ä¸ªæ–‡ä»¶ å°±æœ‰å‡ ä¸ªæ’å rankçš„index 3 5 7 ... ...
+        for i in range(file_num):
+            sum_rank += int(all_fund_list[fund_index][3 + 2 * i])
+
+        # è®¡ç®—å¹³å‡æ’å
+        avg_rank = float('%.2f' % (float(sum_rank) / file_num))
+
+        # åŠ å…¥avg_rank
+        all_fund_list[fund_index].append(avg_rank)
+
+        # å¤„ç†ä¸‹ä¸€ä¸ª
+        fund_index += 1
+
+    # 3ã€æ’åº å†™æ–‡ä»¶ æ‰“å°
+    # avg_rankçš„index 5 + 2 * file_num
+    all_fund_list.sort(key=lambda fund: fund[3 + 2 * file_num])
+
+    file_object = open('results.txt', 'w')
+    int_rank = 1
+    try:
+        for fund_list in all_fund_list:
+            print(str(int_rank) + '\t' + '\t'.join('{0}'.format(n) for n in fund_list))
+            file_object.write(str(int_rank) + '\t' + '\t'.join('{0}'.format(n) for n in fund_list) + '\n')
+            int_rank += 1
+    finally:
+        file_object.close()
+
+    sys.exit(0)
+
 
 def test():
-	all_fund_list = []
-	
-	file_object = open('test.txt', 'r')
-	try:
-		file_object.readline()
-		while 1:
-			funds_txt = file_object.readline()
-			if not funds_txt:
-				break;
-				
-			fund = funds_txt.split()
-			#print fund[2] + '\t' + fund[3]
-			fund_list= []
-			fund_list.append(fund[1])
-			fund_list.append(fund[2])
-			fund_list.append(fund[3])
-			fund_list.append(fund[0])
-			fund_list.append(fund[7])
-			
-			all_fund_list.append(fund_list)
-	finally:
-		file_object.close()
+    all_fund_list = []
 
-	fund_code_list = ['150294', '002534', '0004', '502008', '000114']
-	fund_num = len(all_fund_list)
-	print fund_num
-	for fund_code in fund_code_list:
-		fund_index = get_index(fund_code, all_fund_list)
-		if fund_index < fund_num:
-			print fund_code + '\t' + str(fund_index) + '\t' + str(all_fund_list[fund_index])
-		else:
-			print fund_code + '\tnot found!'
-		
-	
-	print '\n\n\n\n'
-	#print all_fund_list.index('150294')
+    file_object = open('test.txt', 'r')
+    try:
+        file_object.readline()
+        while 1:
+            funds_txt = file_object.readline()
+            if not funds_txt:
+                break;
 
-if __name__ == "__main__":	
-	#test()
-	main()
+            fund = funds_txt.split()
+            # print(fund[2] + '\t' + fund[3])
+            fund_list = []
+            fund_list.append(fund[1])
+            fund_list.append(fund[2])
+            fund_list.append(fund[3])
+            fund_list.append(fund[0])
+            fund_list.append(fund[7])
 
-	
+            all_fund_list.append(fund_list)
+    finally:
+        file_object.close()
+
+    fund_code_list = ['150294', '002534', '0004', '502008', '000114']
+    fund_num = len(all_fund_list)
+    print(fund_num)
+    for fund_code in fund_code_list:
+        fund_index = get_index(fund_code, all_fund_list)
+        if fund_index < fund_num:
+            print(fund_code + '\t' + str(fund_index) + '\t' + str(all_fund_list[fund_index]))
+        else:
+            print(fund_code + '\tnot found!')
+
+    print('\n\n\n\n')
+
+
+# print(all_fund_list.index('150294'))
+
+if __name__ == "__main__":
+    # test()
+    main()

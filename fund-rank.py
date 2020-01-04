@@ -3,269 +3,271 @@
 import time
 import datetime
 import glob
-import urllib2
+import urllib.request as urllib2
 import json
 import sys
 import re
+import importlib as reload
 
-# Ê¹ÓÃ·½·¨
+
+# ä½¿ç”¨æ–¹æ³•
 def usage():
-	print 'fund-rank.py usage:'
-	print '\tpython fund.py start-date end-date fund-code=none\n'
-	print '\tdate format ****-**-**'
-	print '\t\tstart-date must before end-date'
-	print '\tfund-code default none'
-	print '\t\tif not input, get top 20 funds from all more than 6400 funds'
-	print '\t\telse get that fund\'s rate of rise\n'
-	print '\teg:\tpython fund-rank.py 2017-03-01 2017-03-25'
-	print '\teg:\tpython fund-rank.py 2017-03-01 2017-03-25 377240'
+    print('fund-rank.py usage:')
+    print('\tpython fund.py start-date end-date fund-code=none\n')
+    print('\tdate format ****-**-**')
+    print('\t\tstart-date must before end-date')
+    print('\tfund-code default none')
+    print('\t\tif not input, get top 20 funds from all more than 6400 funds')
+    print('\t\telse get that fund\'s rate of rise\n')
+    print('\teg:\tpython fund-rank.py 2017-03-01 2017-03-25')
+    print('\teg:\tpython fund-rank.py 2017-03-01 2017-03-25 377240')
 
-# »ñÈ¡Ä³Ò»»ù½ğÔÚÄ³Ò»ÈÕµÄÀÛ¼Æ¾»ÖµÊı¾İ
+
+# è·å–æŸä¸€åŸºé‡‘åœ¨æŸä¸€æ—¥çš„ç´¯è®¡å‡€å€¼æ•°æ®
 def get_jingzhi(strfundcode, strdate):
-	try:
-		url = 'http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code=' + \
-		      strfundcode + '&page=1&per=20&sdate=' + strdate + '&edate=' + strdate
-		#print url + '\n'
-		response = urllib2.urlopen(url)
-	except urllib2.HTTPError, e:
-		print e
-		urllib_error_tag = True
-	except StandardError, e:
-		print e
-		urllib_error_tag = True
-	else:
-		urllib_error_tag = False
-	
-	if urllib_error_tag == True:
-		return '-1'
+    try:
+        url = 'http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code=' + \
+              strfundcode + '&page=1&per=20&sdate=' + strdate + '&edate=' + strdate
+        # print(url + '\n')
+        response = urllib2.urlopen(url)
+    except urllib2.HTTPError as e:
+        print(e)
+        urllib_error_tag = True
+    # except StandardError, e:
+    # 	print( e)
+    # 	urllib_error_tag = True
+    else:
+        urllib_error_tag = False
 
-	json_fund_value = response.read().decode('utf-8')
-	#print json_fund_value
+    if urllib_error_tag == True:
+        return '-1'
 
-	tr_re = re.compile(r'<tr>(.*?)</tr>')
-	item_re = re.compile(r'''<td>(\d{4}-\d{2}-\d{2})</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?></td>''', re.X)
+    json_fund_value = response.read().decode('utf-8')
+    # print(json_fund_value)
 
-	# »ñÈ¡²»µ½ ·µ»Ø-1
-	jingzhi = '-1'
-	for line in tr_re.findall(json_fund_value):
-		#print line + '\n'
-		match = item_re.match(line)
-		if match:
-			entry = match.groups()
-			date = datetime.datetime.strptime(entry[0], '%Y-%m-%d')
-			#jingzhi = entry[2]
-			# result.append([date, float(entry[1]), entry[3]])
-			jingzhi1 = entry[1]
-			jingzhi2 = entry[2]
-			#print jingzhi2
-			
-			if jingzhi2.strip() == '':
-				# 040028
-				# ¾»ÖµÈÕÆÚ	Ã¿Íò·İÊÕÒæ	7ÈÕÄê»¯ÊÕÒæÂÊ£¨%£©	Éê¹º×´Ì¬	Êê»Ø×´Ì¬	·ÖºìËÍÅä
-				# 2017-01-06	1.4414												ÔİÍ£Éê¹º	ÔİÍ£Êê»Ø	
-				# 2017-01-05	1.4369												ÔİÍ£Éê¹º	ÔİÍ£Êê»Ø	
-				jingzhi = '-1'
-			elif jingzhi2.find('%') > -1:
-				# 040003
-				# ¾»ÖµÈÕÆÚ	Ã¿Íò·İÊÕÒæ	7ÈÕÄê»¯ÊÕÒæÂÊ£¨%£©	Éê¹º×´Ì¬	Êê»Ø×´Ì¬	·ÖºìËÍÅä
-				# 2017-03-27	1.1149	3.9450%	ÏŞÖÆ´ó¶îÉê¹º	¿ª·ÅÊê»Ø	
-				# 2017-03-26*	2.2240	3.8970%	ÏŞÖÆ´ó¶îÉê¹º	¿ª·ÅÊê»Ø	
-				jingzhi = '-1'
-			elif float(jingzhi1) > float(jingzhi2):
-				# 502015
-				# ¾»ÖµÈÕÆÚ	µ¥Î»¾»Öµ	ÀÛ¼Æ¾»Öµ	ÈÕÔö³¤ÂÊ	Éê¹º×´Ì¬	Êê»Ø×´Ì¬	·ÖºìËÍÅä
-				# 2017-03-27	0.6980	0.3785	-2.24%	³¡ÄÚÂòÈë	³¡ÄÚÂô³ö	
-				# 2017-03-24	0.7140	0.3945	5.15%	³¡ÄÚÂòÈë	³¡ÄÚÂô³ö	
-				jingzhi = entry[1]
-			else:
-				#
-				# ¾»ÖµÈÕÆÚ	µ¥Î»¾»Öµ	ÀÛ¼Æ¾»Öµ	ÈÕÔö³¤ÂÊ	Éê¹º×´Ì¬	Êê»Ø×´Ì¬	·ÖºìËÍÅä
-				# 2017-03-28	1.7720	1.7720	-0.23%	¿ª·ÅÉê¹º	¿ª·ÅÊê»Ø	
-				# 2017-03-27	1.7761	1.7761	-0.43%	¿ª·ÅÉê¹º	¿ª·ÅÊê»Ø	
-				jingzhi = entry[2]
+    tr_re = re.compile(r'<tr>(.*?)</tr>')
+    item_re = re.compile(
+        r'''<td>(\d{4}-\d{2}-\d{2})</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?>(.*?)</td><td.*?></td>''',
+        re.X)
 
-	return jingzhi
-	
+    # è·å–ä¸åˆ° è¿”å›-1
+    jingzhi = '-1'
+    for line in tr_re.findall(json_fund_value):
+        # print(line + '\n')
+        match = item_re.match(line)
+        if match:
+            entry = match.groups()
+            date = datetime.datetime.strptime(entry[0], '%Y-%m-%d')
+            # jingzhi = entry[2]
+            # result.append([date, float(entry[1]), entry[3]])
+            jingzhi1 = entry[1]
+            jingzhi2 = entry[2]
+            # print(jingzhi2)
+
+            if jingzhi2.strip() == '':
+                # 040028
+                # å‡€å€¼æ—¥æœŸ	æ¯ä¸‡ä»½æ”¶ç›Š	7æ—¥å¹´åŒ–æ”¶ç›Šç‡ï¼ˆ%ï¼‰	ç”³è´­çŠ¶æ€	èµå›çŠ¶æ€	åˆ†çº¢é€é…
+                # 2017-01-06	1.4414												æš‚åœç”³è´­	æš‚åœèµå›
+                # 2017-01-05	1.4369												æš‚åœç”³è´­	æš‚åœèµå›
+                jingzhi = '-1'
+            elif jingzhi2.find('%') > -1:
+                # 040003
+                # å‡€å€¼æ—¥æœŸ	æ¯ä¸‡ä»½æ”¶ç›Š	7æ—¥å¹´åŒ–æ”¶ç›Šç‡ï¼ˆ%ï¼‰	ç”³è´­çŠ¶æ€	èµå›çŠ¶æ€	åˆ†çº¢é€é…
+                # 2017-03-27	1.1149	3.9450%	é™åˆ¶å¤§é¢ç”³è´­	å¼€æ”¾èµå›
+                # 2017-03-26*	2.2240	3.8970%	é™åˆ¶å¤§é¢ç”³è´­	å¼€æ”¾èµå›
+                jingzhi = '-1'
+            elif float(jingzhi1) > float(jingzhi2):
+                # 502015
+                # å‡€å€¼æ—¥æœŸ	å•ä½å‡€å€¼	ç´¯è®¡å‡€å€¼	æ—¥å¢é•¿ç‡	ç”³è´­çŠ¶æ€	èµå›çŠ¶æ€	åˆ†çº¢é€é…
+                # 2017-03-27	0.6980	0.3785	-2.24%	åœºå†…ä¹°å…¥	åœºå†…å–å‡º
+                # 2017-03-24	0.7140	0.3945	5.15%	åœºå†…ä¹°å…¥	åœºå†…å–å‡º
+                jingzhi = entry[1]
+            else:
+                #
+                # å‡€å€¼æ—¥æœŸ	å•ä½å‡€å€¼	ç´¯è®¡å‡€å€¼	æ—¥å¢é•¿ç‡	ç”³è´­çŠ¶æ€	èµå›çŠ¶æ€	åˆ†çº¢é€é…
+                # 2017-03-28	1.7720	1.7720	-0.23%	å¼€æ”¾ç”³è´­	å¼€æ”¾èµå›
+                # 2017-03-27	1.7761	1.7761	-0.43%	å¼€æ”¾ç”³è´­	å¼€æ”¾èµå›
+                jingzhi = entry[2]
+
+    return jingzhi
+
+
 def main(argv):
-	# »ñÈ¡Ç°20¸ö
-	gettopnum = 50
-	
-	# 1¡¢²ÎÊı´¦Àí
-	#print sys.argv
-	if len(sys.argv) != 3 and len(sys.argv) != 4:
-		usage()
-		sys.exit(1)
-	
-	# 1.1 ÆğÊ¼Ê±¼ä
-	strsdate = sys.argv[1]
-	stredate = sys.argv[2]
-	
-	# ½ñÈÕÁãÊ± 
-	strtoday = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')
-	tdatetime = datetime.datetime.strptime(strtoday, '%Y-%m-%d')
-	#print tdatetime
-	
-	# ¿ªÊ¼Ê±¼ä Èç¹ûÊÇÖÜÁù ÖÜÈÕ µ÷Õûµ½ÖÜÎå
-	#print strsdate
-	sdatetime = datetime.datetime.strptime(strsdate, '%Y-%m-%d')
-	sdatetime.isoweekday()
-	if sdatetime.isoweekday() == 7:
-		sdatetime = sdatetime + datetime.timedelta(days=-2)
-	elif sdatetime.isoweekday() == 6:
-		sdatetime = sdatetime + datetime.timedelta(days=-1)
+    # è·å–å‰20ä¸ª
+    gettopnum = 50
 
-	strsdate = datetime.datetime.strftime(sdatetime, '%Y-%m-%d')
-	#print strsdate
+    # 1ã€å‚æ•°å¤„ç†
+    # print(sys.argv)
+    if len(sys.argv) != 3 and len(sys.argv) != 4:
+        usage()
+        sys.exit(1)
 
-	# ½áÊøÊ±¼ä Èç¹ûÊÇÖÜÁù ÖÜÈÕ µ÷Õûµ½ÖÜÎå
-	#print stredate
-	edatetime = datetime.datetime.strptime(stredate, '%Y-%m-%d')
-	edatetime.isoweekday()
-	if edatetime.isoweekday() == 7:
-		edatetime = edatetime + datetime.timedelta(days=-2)
-	elif edatetime.isoweekday() == 6:
-		edatetime = edatetime + datetime.timedelta(days=-1)
+    # 1.1 èµ·å§‹æ—¶é—´
+    strsdate = sys.argv[1]
+    stredate = sys.argv[2]
 
-	stredate = datetime.datetime.strftime(edatetime, '%Y-%m-%d')
-	#print stredate
+    # ä»Šæ—¥é›¶æ—¶
+    strtoday = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')
+    tdatetime = datetime.datetime.strptime(strtoday, '%Y-%m-%d')
+    # print(tdatetime)
 
-	# ÅĞ¶ÏÊ±¼ä¶Î ½ñÈÕ¾»ÖµÒªÏÂÎç²Å³ö Ò»ÂÉ²»´¦Àí
-	if edatetime <= sdatetime or tdatetime <= sdatetime or tdatetime <= edatetime:
-		print 'date input error!\n'
-		usage()
-		sys.exit(1)
+    # å¼€å§‹æ—¶é—´ å¦‚æœæ˜¯å‘¨å…­ å‘¨æ—¥ è°ƒæ•´åˆ°å‘¨äº”
+    # print(strsdate)
+    sdatetime = datetime.datetime.strptime(strsdate, '%Y-%m-%d')
+    sdatetime.isoweekday()
+    if sdatetime.isoweekday() == 7:
+        sdatetime = sdatetime + datetime.timedelta(days=-2)
+    elif sdatetime.isoweekday() == 6:
+        sdatetime = sdatetime + datetime.timedelta(days=-1)
 
-	
-	# 2 ¶Ôµ¥Ò»»ù½ğ½øĞĞ´¦Àí
-	if len(sys.argv) == 4:
-		strfundcode = sys.argv[3]
-		
-		jingzhimin = get_jingzhi(strfundcode, strsdate)
-		jingzhimax = get_jingzhi(strfundcode, stredate)
-		
-		if jingzhimin == '-1' or jingzhimax == '-1' or jingzhimin.strip() == '' or jingzhimax.strip() == '':
-			print 'maybe date input error!\n'
+    strsdate = datetime.datetime.strftime(sdatetime, '%Y-%m-%d')
+    # print(strsdate)
+
+    # ç»“æŸæ—¶é—´ å¦‚æœæ˜¯å‘¨å…­ å‘¨æ—¥ è°ƒæ•´åˆ°å‘¨äº”
+    # print(stredate)
+    edatetime = datetime.datetime.strptime(stredate, '%Y-%m-%d')
+    edatetime.isoweekday()
+    if edatetime.isoweekday() == 7:
+        edatetime = edatetime + datetime.timedelta(days=-2)
+    elif edatetime.isoweekday() == 6:
+        edatetime = edatetime + datetime.timedelta(days=-1)
+
+    stredate = datetime.datetime.strftime(edatetime, '%Y-%m-%d')
+    # print(stredate)
+
+    # åˆ¤æ–­æ—¶é—´æ®µ ä»Šæ—¥å‡€å€¼è¦ä¸‹åˆæ‰å‡º ä¸€å¾‹ä¸å¤„ç†
+    if edatetime <= sdatetime or tdatetime <= sdatetime or tdatetime <= edatetime:
+        print('date input error!\n')
+        usage()
+        sys.exit(1)
+
+    # 2 å¯¹å•ä¸€åŸºé‡‘è¿›è¡Œå¤„ç†
+    if len(sys.argv) == 4:
+        strfundcode = sys.argv[3]
+
+        jingzhimin = get_jingzhi(strfundcode, strsdate)
+        jingzhimax = get_jingzhi(strfundcode, stredate)
+
+        if jingzhimin == '-1' or jingzhimax == '-1' or jingzhimin.strip() == '' or jingzhimax.strip() == '':
+            print('maybe date input error!\n')
+            usage()
+            sys.exit(1)
+
+        jingzhidif = float(jingzhimax) - float(jingzhimin)
+        jingzhirise = float('%.2f' % (jingzhidif * 100 / float(jingzhimin)))
+
+        print('fund:' + strfundcode + '\n')
+        print(strsdate + '\t' + stredate + '\tå‡€å¢é•¿' + '\t' + 'å¢é•¿ç‡')
+        print(jingzhimin + '\t\t' + jingzhimax + '\t\t' + str(jingzhidif) + '\t' + str(jingzhirise) + '%')
+        sys.exit(0)
+
+    # 3ã€è·å–åŸºé‡‘åˆ—è¡¨
+    #    å¦‚æœå­˜åœ¨æ–‡ä»¶ fundlist-*.txt æ–‡ä»¶ï¼Œåˆ™è¯»å–è¯¥æ–‡ä»¶
+    #    å¦‚æœè¯¥æ–‡ä»¶ä¸å­˜åœ¨ urlè·å–åˆ—è¡¨ ç„¶åå­˜æ–‡ä»¶
+
+    fundlist_files = glob.glob('fundlist-*.txt')
+    if (len(fundlist_files) > 0):
+        # print(fundlist_files[0])
+        # è¯»å–æ–‡ä»¶å†…å®¹
+        file_object = open(fundlist_files[0], 'r')
+        try:
+            all_funds_txt = file_object.read()
+        # print(all_funds_txt)
+        finally:
+            file_object.close()
+    else:
+        # ä»å¤©å¤©åŸºé‡‘ç½‘è·å–æ‰€æœ‰åŸºé‡‘
+        response_all_funds = urllib2.urlopen('http://fund.eastmoney.com/js/fundcode_search.js')
+        all_funds_txt = response_all_funds.read()
+        # å­˜æ–‡ä»¶
+        file_object = open('fundlist-' + strtoday + '.txt', 'w')
+        try:
+            file_object.write(all_funds_txt)
+        # print(all_funds_txt)
+        finally:
+            file_object.close()
+
+    # å¤„ç†æ•°æ® å°†å…¶è½¬åŒ–ä¸ºlist
+    all_funds_txt = all_funds_txt[all_funds_txt.find('=') + 2:all_funds_txt.rfind(';')]
+    all_funds_list = json.loads(all_funds_txt)
+
+    all_funds_list = all_funds_list[:100]
+    print('start:')
+    print(datetime.datetime.now())
+    print('funds sum:' + str(len(all_funds_list)))
+
+    # 4 å¾ªç¯å¤„ç†æ¯ä¸ªåŸºé‡‘
+    for fund in all_funds_list:
+        print('process fund:\t' + fund[0] + '\t' + fund[2])
+        strfundcode = fund[0]
+        # è·å–å‡€å€¼
+        jingzhimin = get_jingzhi(strfundcode, strsdate)
+        jingzhimax = get_jingzhi(strfundcode, stredate)
+
+        if jingzhimin == '-1' or jingzhimax == '-1' or jingzhimin.strip() == '' or jingzhimax.strip() == '':
+            # æœ‰çš„è·å–ä¸åˆ° å¦‚ 000002 åå¤æˆé•¿(åç«¯) é‚£å°±éƒ½å–0å§ NND
+            # 040028  åå®‰æœˆæœˆé‘«çŸ­æœŸç†è´¢å€ºåˆ¸A æœ‰å¯èƒ½ä¸ºç©º
+            jingzhimin = '0'
+            jingzhimax = '0'
+            jingzhidif = 0
+            jingzhirise = 0
+
+            '''
+			print('maybe date input error!\n')
 			usage()
 			sys.exit(1)
-		
-		jingzhidif = float(jingzhimax) - float(jingzhimin)
-		jingzhirise = float('%.2f' %(jingzhidif * 100 / float(jingzhimin)))
-	
-		print 'fund:' + strfundcode + '\n'
-		print strsdate + '\t' + stredate + '\t¾»Ôö³¤' + '\t' + 'Ôö³¤ÂÊ'
-		print jingzhimin + '\t\t' + jingzhimax + '\t\t' + str(jingzhidif) + '\t' + str(jingzhirise) + '%'
-		sys.exit(0)
-	
-		
-	# 3¡¢»ñÈ¡»ù½ğÁĞ±í
-	#    Èç¹û´æÔÚÎÄ¼ş fundlist-*.txt ÎÄ¼ş£¬Ôò¶ÁÈ¡¸ÃÎÄ¼ş
-	#    Èç¹û¸ÃÎÄ¼ş²»´æÔÚ url»ñÈ¡ÁĞ±í È»ºó´æÎÄ¼ş
-	
-	fundlist_files = glob.glob('fundlist-*.txt')
-	if (len(fundlist_files) > 0) :
-		# print fundlist_files[0]
-		# ¶ÁÈ¡ÎÄ¼şÄÚÈİ
-		file_object = open(fundlist_files[0], 'r')
-		try:
-			all_funds_txt = file_object.read()
-			#print all_funds_txt
-		finally:
-			file_object.close()
-	else:
-		# ´ÓÌìÌì»ù½ğÍø»ñÈ¡ËùÓĞ»ù½ğ
-		response_all_funds = urllib2.urlopen('http://fund.eastmoney.com/js/fundcode_search.js')
-		all_funds_txt = response_all_funds.read()
-		#´æÎÄ¼ş
-		file_object = open('fundlist-' + strtoday + '.txt', 'w')
-		try:
-			file_object.write(all_funds_txt)
-			#print all_funds_txt
-		finally:
-			file_object.close()
-	
-	#´¦ÀíÊı¾İ ½«Æä×ª»¯Îªlist
-	all_funds_txt = all_funds_txt[all_funds_txt.find('=')+2:all_funds_txt.rfind(';')]
-	all_funds_list = json.loads(all_funds_txt.decode('utf-8'))
-	 
-	print 'start:'
-	print datetime.datetime.now()
-	print 'funds sum:' + str(len(all_funds_list))
-	
-	# 4 Ñ­»·´¦ÀíÃ¿¸ö»ù½ğ
-	for fund in all_funds_list:
-		print 'process fund:\t' + fund[0].encode('gb18030') + '\t' + fund[2].encode('gb18030')
-		strfundcode = fund[0]
-		# »ñÈ¡¾»Öµ
-		jingzhimin = get_jingzhi(strfundcode, strsdate)
-		jingzhimax = get_jingzhi(strfundcode, stredate)
-		
-		if jingzhimin == '-1' or jingzhimax == '-1' or jingzhimin.strip() == '' or jingzhimax.strip() == '':
-			# ÓĞµÄ»ñÈ¡²»µ½ Èç 000002 »ªÏÄ³É³¤(ºó¶Ë) ÄÇ¾Í¶¼È¡0°É NND
-			# 040028  »ª°²ÔÂÔÂöÎ¶ÌÆÚÀí²ÆÕ®È¯A ÓĞ¿ÉÄÜÎª¿Õ
-			jingzhimin = '0'
-			jingzhimax = '0'
-			jingzhidif = 0
-			jingzhirise = 0
-			
 			'''
-			print 'maybe date input error!\n'
-			usage()
-			sys.exit(1)
-			'''
-		elif jingzhimin.find('%') > -1 or jingzhimax.find('%') > -1:
-			# »¹ÓĞÕâÖÖ NND 000037  ¹ã·¢Àí²Æ7ÌìÕ®È¯A
-			# ¾»ÖµÈÕÆÚ	Ã¿Íò·İÊÕÒæ	7ÈÕÄê»¯ÊÕÒæÂÊ£¨%£©	×î½üÔË×÷ÆÚÄê»¯ÊÕÒæÂÊ	Éê¹º×´Ì¬	Êê»Ø×´Ì¬	·ÖºìËÍÅä
-			# 2016-03-01	0.7740	2.7010%	2.7010%	ÏŞÖÆ´ó¶îÉê¹º	¿ª·ÅÊê»Ø	
-			jingzhidif = 0
-			jingzhirise = 0
-		else:
-			# ¼ÆËãÔö³¤ÂÊ
-			jingzhidif = float('%.4f' %(float(jingzhimax) - float(jingzhimin)))
-			jingzhirise = float('%.2f' %(jingzhidif * 100 / float(jingzhimin)))
-		
-		# ½«Êı¾İ¼ÓÈëµ½listÖĞ
-		fund.append(jingzhimin)
-		fund.append(jingzhimax)
-		fund.append(jingzhidif)
-		fund.append(jingzhirise)
-		
-		# ÊÇ·ñĞèÒª¿ØÖÆËÙ¶È
-		#time.sleep(1)
-				
-		
-	# 5 ÅÅĞò Ğ´ÎÄ¼ş ´òÓ¡½á¹û
-	fileobject = open('result_' + strsdate + '_' + stredate + '.txt', 'w')
-	
-	# ¸ù¾İÔö³¤ÂÊÄæÅÅĞò
-	all_funds_list.sort(key=lambda fund: fund[8],  reverse=True)
-	strhead =  'ÅÅĞò' + '\t' + '±àÂë' + '\t\t' + 'Ãû³Æ' + '\t\t' + 'ÀàĞÍ' + '\t\t' + \
-	strsdate + '\t' + stredate + '\t' + '¾»Ôö³¤' + '\t' + 'Ôö³¤ÂÊ' + '\n'
-	print strhead
-	fileobject.write(strhead)
-	
-	# ´òÓ¡
-	for index in range(len(all_funds_list)):
-		#print all_funds_list[index]
-		strcontent = str(index+1) + '\t' + all_funds_list[index][0].encode('gb18030') + '\t' + all_funds_list[index][2].encode('gb18030') + \
-		'\t\t' + all_funds_list[index][3].encode('gb18030') + '\t\t' + all_funds_list[index][5].encode('gb18030') + '\t\t' + \
-		all_funds_list[index][6].encode('gb18030') + '\t\t' + str(all_funds_list[index][7]) + '\t' + str(all_funds_list[index][8]) + '%\n'
-		print strcontent
-		fileobject.write(strcontent)
-		
-		if index >= gettopnum:
-			break;
-		
-	fileobject.close()
-	
-	print 'end:'
-	print datetime.datetime.now()
-	
-	sys.exit(0)
-	
-if __name__ == "__main__":	
-	reload(sys)
-	sys.setdefaultencoding('utf-8')
-	
-	main(sys.argv)
+        elif jingzhimin.find('%') > -1 or jingzhimax.find('%') > -1:
+            # è¿˜æœ‰è¿™ç§ NND 000037  å¹¿å‘ç†è´¢7å¤©å€ºåˆ¸A
+            # å‡€å€¼æ—¥æœŸ	æ¯ä¸‡ä»½æ”¶ç›Š	7æ—¥å¹´åŒ–æ”¶ç›Šç‡ï¼ˆ%ï¼‰	æœ€è¿‘è¿ä½œæœŸå¹´åŒ–æ”¶ç›Šç‡	ç”³è´­çŠ¶æ€	èµå›çŠ¶æ€	åˆ†çº¢é€é…
+            # 2016-03-01	0.7740	2.7010%	2.7010%	é™åˆ¶å¤§é¢ç”³è´­	å¼€æ”¾èµå›
+            jingzhidif = 0
+            jingzhirise = 0
+        else:
+            # è®¡ç®—å¢é•¿ç‡
+            jingzhidif = float('%.4f' % (float(jingzhimax) - float(jingzhimin)))
+            jingzhirise = float('%.2f' % (jingzhidif * 100 / float(jingzhimin)))
 
-	
+        # å°†æ•°æ®åŠ å…¥åˆ°listä¸­
+        fund.append(jingzhimin)
+        fund.append(jingzhimax)
+        fund.append(jingzhidif)
+        fund.append(jingzhirise)
+
+    # æ˜¯å¦éœ€è¦æ§åˆ¶é€Ÿåº¦
+    # time.sleep(1)
+
+    # 5 æ’åº å†™æ–‡ä»¶ æ‰“å°ç»“æœ
+    fileobject = open('result_' + strsdate + '_' + stredate + '.txt', 'w')
+
+    # æ ¹æ®å¢é•¿ç‡é€†æ’åº
+    all_funds_list.sort(key=lambda fund: fund[8], reverse=True)
+    strhead = 'æ’åº' + '\t' + 'ç¼–ç ' + '\t\t' + 'åç§°' + '\t\t' + 'ç±»å‹' + '\t\t' + \
+              strsdate + '\t' + stredate + '\t' + 'å‡€å¢é•¿' + '\t' + 'å¢é•¿ç‡' + '\n'
+    print(strhead)
+    fileobject.write(strhead)
+
+    # æ‰“å°
+    for index in range(len(all_funds_list)):
+        # print(all_funds_list[index])
+        strcontent = str(index + 1) + '\t' + all_funds_list[index][0] + '\t' + all_funds_list[index][2] + \
+                     '\t\t' + all_funds_list[index][3] + '\t\t' + all_funds_list[index][5] + '\t\t' + \
+                     all_funds_list[index][6] + '\t\t' + str(all_funds_list[index][7]) + '\t' + \
+                     str(all_funds_list[index][8]) + '%\n'
+        print(strcontent)
+        fileobject.write(strcontent)
+
+        if index >= gettopnum:
+            break;
+
+    fileobject.close()
+
+    print('end:')
+    print(datetime.datetime.now())
+
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    reload.reload(sys)
+    main(sys.argv)
